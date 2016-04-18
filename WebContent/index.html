@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html data-ng-app="forumsApp">
+<head>
+<meta charset="UTF-8">
+<title>Couchbase Forums Notifier</title>
+<script src="libs/angular.js"></script>
+<script src="libs/jquery.js"></script>
+<script src="forums.js"></script>
+<script src="forums_controller.js"></script>
+
+<style TYPE="text/css">
+<!--
+.cbforums {
+  border: 1px solid #ddd;
+  font-style: italic;
+  color: #5286BC;
+  style: margin-left;
+}
+
+.cbforums>tbody>tr:nth-child(odd) {
+  background-color: #f5f5f5;
+}
+
+.cbforums>tbody>tr:nth-child(even) {
+  background-color: #fff;
+}
+-->
+</style>
+
+</head>
+<body ng-controller="forumsController as fc">
+  <h2>Couchbase Forums Analyzer/Notifier</h2>
+<body>Every night at midnight, a crawler collects all the posts
+  on the Couchbase Forums and puts them into a Couchbase Instance. (If
+  you'd like a copy of the data, contact Eben.) You can use the text
+  fields below to do searches for recent posts from a given category or
+  containing certain terms, and you can restrict the results to only
+  unanswered questions (i.e., those threads containing only a single
+  post). For more than one category or search term, enter a
+  comma-delimited list. You can even 'subscribe' to a set of search
+  terms, and receive a daily email with links to relevant posts.
+</body>
+<br>
+<body>Known categories are: c-sdk, community,
+  couchbase-full-text-search, couchbase-lite, couchbase-server,
+  developing-forestdb, go-sdk, java-sdk, meta, mobile, n1ql, net-sdk,
+  node-js-sdk, odbc-jdbc, other-client-libraries, other-product,
+  php-sdk, python-sdk, ruby-sdk, uncategorized
+</body>
+</body>
+
+<h3>
+  Current Subscribers <a href="" ng-click="fc.getForumSubscribers()">(update
+    list)</a>
+</h3>
+<table class="cbforums">
+  <thead class="cbforums">
+    <tr>
+      <th class="cbforums">email</th>
+      <th class="cbforums">search terms</th>
+      <th class="cbforums">categories</th>
+      <th class="cbforums">since</th>
+      <th class="cbforums">unanswered only</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr class="cbforums" ng-repeat="sub in fc.subscriberList">
+      <td class="cbforums">{{sub.email}}</td>
+      <td class="cbforums">{{sub.terms}}</td>
+      <td class="cbforums">{{sub.categories}}</td>
+      <td class="cbforums">{{sub.since}}</td>
+      <td class="cbforums">{{sub.unanswered}}</td>
+      <td class="cbforums"
+        ng-click="fc.edit(sub.email,sub.terms,sub.categories,sub.unanswered,sub.since)">edit</td>
+      <td class="cbforums" ng-click="fc.del(sub.email)">delete</td>
+    </tr>
+  </tbody>
+</table>
+<br>
+<div>
+  Subscription Email: <input type="email" ng-model="fc.current.email" /><br />
+  <button type="submit" ng-click="fc.submit()">Upsert
+    Subscription</button>
+</div>
+
+<div id="submitStatus"></div>
+
+<h3>Search by:</h3>
+<table style="width: 80%">
+  <tr>
+    <td style="width: 1px">Terms:</td>
+    <td style="width: 500px"><input style="width: 100%" type="text"
+      ng-model="fc.current.terms" /></td>
+  </tr>
+  <tr>
+    <td style="width: 1px">Categories:</td>
+    <td style="width: 100%"><input style="width: 100%" type="text"
+      ng-model="fc.current.categories" /></td>
+  </tr>
+  <tr>
+    <td style="width: 1px">In the past #days:</td>
+    <td style="width: 100%"><input type="text"
+      ng-model="fc.current.since" /></td>
+  </tr>
+  <tr>
+    <td colspan=2><input type="checkbox"
+      ng-model="fc.current.unanswered">Unanswered posts only</input></td>
+  </tr>
+  <tr>
+    <td colspan=2><button ng-click="fc.test()">Do Search</button></td>
+  </tr>
+</table>
+
+<h3>Posts matching terms/categories:</h3>
+<div id="posts"></div>
+</body>
+</html>

@@ -1,8 +1,8 @@
 package com.couchbase.research.forumsTweets;
 
 import java.util.List;
-
-
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -101,17 +101,18 @@ public class QueryInterface
 		String whereExpr = buildConditionalExpr(termlist,since,categorylist);
 		String whereClause = (whereExpr.length() > 0) ? " and " + whereExpr : "";
 
-		String query = "(select min(category) category, min(date) date, "
+		String query = "(select min(category) category, min(dateStr) dateStr, "
 				+ "min(author) author, min(postHTML) postHTML, min(summary) summary, "
 				+ "min(concat(\"http://forums.couchbase.com/t/\",to_string(thread_num))) link "
 				+ "from Forums " 
 				+ "group by thread_num " 
 				+ "having count(*) = 1 " + whereClause				
 				+ " order by thread_num desc) "
-				+ "union "
+				+ "union all "
 				+ "(select foo.* from (select \"StackOverflow\" category, "
-				+ "millis_to_str(creation_date*1000) date, title summary, postHTML, is_answered, "
-				+ "owner.display_name author, link, "
+				+ "title summary, postHTML, "
+				+ "is_answered, "
+				+ "owner.display_name author, link, post, "
 				+ "millis_to_str(creation_date*1000) dateStr "
 				+ "from StackOverflow) foo where is_answered = false " + whereClause + ")";
 		System.out.printf("Got query: %s\n",query);
@@ -155,10 +156,10 @@ public class QueryInterface
 
 		// make the query		
 		String query = "select foo2.* from ((select f1.*, concat(\"http://forums.couchbase.com/t/\",to_string(thread_num)) link "
-				+ "from Forums f1 "+ whereClause + " )"
-				+ "union "
+				+ "from Forums f1 "+ whereClause + " ) "
+				+ "union all "
 				+ "(select foo.* from (select \"StackOverflow\" category, "
-				+ "millis_to_str(creation_date*1000) date, title summary, "
+				+ "title summary, post, "
 				+ "owner.display_name author, link, postHTML, "
 				+ "millis_to_str(creation_date*1000) dateStr "
 				+ "from StackOverflow) foo " + whereClause + ")) foo2 order by summary, dateStr desc";
@@ -311,7 +312,7 @@ public class QueryInterface
 			{
 				if (expr.length() > 7)
 					expr += " or ";
-				expr += "regex_contains(post,'" + term + "')";			
+				expr += "regex_contains(lower(post),lower('" + term + "'))";			
 			}
 			expr += ") ";
 		}
@@ -352,7 +353,16 @@ public class QueryInterface
 					//	post = post.replaceAll("pre>","mypre>");
 					
 					if (post != null && terms != null) for (String term : terms) 
-						post = post.replaceAll(term,"<mark>" + term + "</mark>");
+					{
+						Pattern p = Pattern.compile(term,Pattern.CASE_INSENSITIVE);
+						Matcher m = p.matcher(post);
+						StringBuffer newPost = new StringBuffer();
+						while (m.find()) {
+							m.appendReplacement(newPost, "<mark>" + m.group() + "</mark>");
+						}
+						post = newPost.toString();
+						//post = post.replaceAll(term,"<mark>" + term + "</mark>");
+					}
 					//System.out.printf("Got row: %s\n", val.toString());
 					result += String.format(
 							"<tr><td class=\"cbforums\">%s</td>"
@@ -361,7 +371,7 @@ public class QueryInterface
 									+ "<td class=\"cbforums\">%s</td>"
 									+ "<td class=\"cbforums\"><div>%s</div></td>"
 									+ "</tr>",
-									val.getString("date"),
+									val.getString("dateStr"),
 									"<a href=\"" + val.getString("link") 
 									+ "\">" + val.getString("summary") + "</a>",
 									val.getString("category"),

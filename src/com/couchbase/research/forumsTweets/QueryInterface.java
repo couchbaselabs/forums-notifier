@@ -354,13 +354,20 @@ public class QueryInterface
 					
 					if (post != null && terms != null) for (String term : terms) 
 					{
-						Pattern p = Pattern.compile(term,Pattern.CASE_INSENSITIVE);
+						//System.out.printf("Replacing term: %s\n", term);
+						Pattern p = Pattern.compile(Pattern.quote(term),Pattern.CASE_INSENSITIVE);
 						Matcher m = p.matcher(post);
 						StringBuffer newPost = new StringBuffer();
 						while (m.find()) {
-							m.appendReplacement(newPost, "<mark>" + m.group() + "</mark>");
+							//System.out.printf("Got match: %s\n", m.group());
+							m.appendReplacement(newPost, Matcher.quoteReplacement("<mark>" + m.group() + "</mark>"));
 						}
-						post = newPost.toString();
+						m.appendTail(newPost);
+						if (newPost.length() > 0)
+						{
+							//System.out.printf("Post was: %s\n\nNew Post: %s\n\n", post,newPost.toString());
+							post = newPost.toString();
+						}
 						//post = post.replaceAll(term,"<mark>" + term + "</mark>");
 					}
 					//System.out.printf("Got row: %s\n", val.toString());
